@@ -7,9 +7,7 @@ require_relative 'categories'
 class ExpensableApp
   include Helpers
 
-  def intialize(input_array)
-
-        
+  def intialize
     @user = nil
     @categories = []
     @trash = false
@@ -21,7 +19,8 @@ class ExpensableApp
     
   
     until action == "exit"
-      action = get_with_options(["login", "create_user", "exit"])
+
+      action,_rest = login_menu
     begin
       case action
       when "login"
@@ -34,24 +33,30 @@ class ExpensableApp
     rescue HTTParty::ResponseError => error
       parsed_error = JSON.parse(error.message, symbolize_names: true)
       puts parsed_error[:errors]
-
+      welcome_message
     end
     end 
     
   end
 
   def create_user
-    credentials = user_data ### login_form
+    credentials = user_data
     @user = Sessions.signup(credentials)
+    puts "Welcome to Expensable #{@user[:first_name].downcase.capitalize} #{@user[:last_name].downcase.capitalize}"
     expense_page
   end
   
+
   def login
     credentials = login_form
-    # p credentials ### aporte andre
     @user = Sessions.login(credentials)
-    puts "Welcome #{@user[:first_name].downcase.capitalize} #{@user[:last_name].downcase.capitalize}"
+    puts "Welcome back #{@user[:first_name].downcase.capitalize} #{@user[:last_name].downcase.capitalize}"
     expense_page
+  end
+
+  def logout
+    @user = Sessions.logout(@user[:token])
+    welcome_message
   end
 
   def expense_page
@@ -60,20 +65,22 @@ class ExpensableApp
 
     until action == "logout"  
       puts expenses_table
-      action = get_with_options(["create", "show ID", "update ID", "delete ID",
-        "add-to ID", "toggle", "next", "prev", "logout"])
 
+        a=["create","show", "update", "delete","add-to", "toggle", "next", "prev", "logout" ]
+        b=["create","show ID", "update ID", "delete ID ","add-to ID", "toggle", "next", "prev", "logout" ]
+        action,id= get_with_options(a, options_shows: b)
+        
       begin
         case action
         when "create" 
-          puts "create something"
-        when "show ID"
+          create_category
+        when "show"
           puts "show something"
-        when "update ID"
-          puts "update something"
-        when "delete ID" # Llamamos a nuestro menu trash
+        when "update"
+          update_category(id.to_i)
+        when "delete" # Llamamos a nuestro menu trash
           puts "delete something"
-        when "add-to ID"
+        when "add-to"
           puts "add something to an id"
         when "toggle"
           puts "toggle something"
@@ -82,7 +89,7 @@ class ExpensableApp
         when "prev"
           puts "should go the prev month"
         when "logout" 
-          puts "logout" 
+          logout
         end
       rescue HTTParty::ResponseError => error
         parsed_error = JSON.parse(error.message, symbolize_names: true)
@@ -91,12 +98,36 @@ class ExpensableApp
     end
   end
 
+
+  ### alex
+  def update_category(id)
+    data = category_form
+    return if data.empty? # return explicito para evitar hacer el request si note_data esta vacia
+    updated_category = Categories.update(@user[:token], id, data)
+    begin
+      founded_category = @categories.find{ |el| el[:id] == id}
+      updated_category.delete(:transactions)
+      p updated_category #### ojo
+      founded_category.update(updated_category)
+    rescue HTTParty::ResponseError => error
+      parsed_error = JSON.parse(error.message, symbolize_names: true)
+      puts "xxx"*5
+      puts parsed_error[:errors]    
+    end
+  end
+  
+  def create_category
+    data = category_form
+    new_category = Categories.create_categories(@user[:token], data)
+    @categories << new_category
+  end
+
   def expenses_table
     table = Terminal::Table.new
     table.title = "Expenses\n #{Date.today.strftime("%B %Y")}"
     table.headings = ['ID', 'Category', 'Total']
     table.rows = @categories.map do |note|
-      [ note[:id], note[:name], note[nil]] ### cambio a :name
+      [ note[:id], note[:name], note[nil]]
     end
     table.style = { :border => :unicode }
     table
@@ -118,9 +149,8 @@ class ExpensableApp
   #   # [true, false, true, true, false, true].sort_by{ |a|  a ? -1 : 1 }
   # end
 
+
 end
-
-
 
 app = ExpensableApp.new
 app.start
