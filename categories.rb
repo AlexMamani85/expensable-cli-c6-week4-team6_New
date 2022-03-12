@@ -28,11 +28,19 @@ class Categories
     JSON.parse(response.body, symbolize_names: true)
   end
 
+  def self.delete_category(token, id)
+    options = {
+      headers: { "Authorization": "Token token=#{token}" }
+    }
+
+    delete("/categories/#{id}", options)
+  end
+
   def self.update(token, id, data)
     options = {
       headers: { 
-        Authorization: "Token token=#{token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": "Token token=#{token}"
       },
       body: data.to_json
     }
@@ -41,6 +49,4 @@ class Categories
     raise HTTParty::ResponseError.new(response) unless response.success?
     JSON.parse(response.body, symbolize_names: true)
   end
-
-
 end

@@ -3,25 +3,26 @@ require_relative "helpers"
 require_relative 'sessions'
 require 'date'
 require_relative 'categories'
-require_relative 'transactions'
 
 class ExpensableApp
   include Helpers
 
   def intialize
     @user = nil
-    @categories = []
+    @categories_month = []
     @trash = false
+    @categories = []
   end
 
   def start
+    @day = Date.new(2021,11,1)
+    @transaction_type = "expense"
     welcome_message
     action = ""
     
   
     until action == "exit"
-
-      action,_rest = login_menu
+      action, _rest = login_menu
     begin
       case action
       when "login"
@@ -44,15 +45,14 @@ class ExpensableApp
     credentials = user_data
     @user = Sessions.signup(credentials)
     puts "Welcome to Expensable #{@user[:first_name].downcase.capitalize} #{@user[:last_name].downcase.capitalize}"
-    expense_page
+    categories_page
   end
   
-
   def login
     credentials = login_form
     @user = Sessions.login(credentials)
     puts "Welcome back #{@user[:first_name].downcase.capitalize} #{@user[:last_name].downcase.capitalize}"
-    expense_page
+    categories_page
   end
 
   def logout
@@ -60,35 +60,32 @@ class ExpensableApp
     welcome_message
   end
 
-  def expense_page
-    @categories = Categories.categories(@user[:token])
+  def categories_page
+   @categories = Categories.categories(@user[:token])
     action = ""
 
     until action == "logout"  
       puts expenses_table
+      action, id = categories_menu
 
-        a=["create","show", "update", "delete","add-to", "toggle", "next", "prev", "logout" ]
-        b=["create","show ID", "update ID", "delete ID ","add-to ID", "toggle", "next", "prev", "logout" ]
-        action,id= get_with_options(a, options_shows: b)
-        
       begin
         case action
         when "create" 
           create_category
         when "show"
-          show_category
+          puts "show something"
         when "update"
           update_category(id.to_i)
         when "delete" # Llamamos a nuestro menu trash
-          puts "delete something"
+          delete_category_id(id.to_i)
         when "add-to"
           puts "add something to an id"
         when "toggle"
-          puts "toggle something"
+          toggle
         when "next"
-          puts "should go the next month"
+          next_month
         when "prev"
-          puts "should go the prev month"
+          prev_month
         when "logout" 
           logout
         end
@@ -99,58 +96,60 @@ class ExpensableApp
     end
   end
 
-
-  ### alex
-  def update_category(id)
-    data = category_form
-    return if data.empty? # return explicito para evitar hacer el request si note_data esta vacia
-    updated_category = Categories.update(@user[:token], id, data)
-    begin
-      founded_category = @categories.find{ |el| el[:id] == id}
-      updated_category.delete(:transactions)
-      p updated_category #### ojo
-      founded_category.update(updated_category)
-    rescue HTTParty::ResponseError => error
-      parsed_error = JSON.parse(error.message, symbolize_names: true)
-      puts "xxx"*5
-      puts parsed_error[:errors]    
-    end
-  end
-  
   def create_category
     data = category_form
     new_category = Categories.create_categories(@user[:token], data)
-    @categories << new_category
+    @categories_month << new_category
+  end
+  
+  def delete_category_id(id)
+    Categories.delete_category(@user[:token], id)
   end
 
-  def expenses_table)
+  def update_category(id)
+    data = category_form
+    updated_category = Categories.update(@user[:token], id, data)
+  
+      founded_category = @categories.find{ |el| el[:id] == id}
+      updated_category.delete(:transactions)
+      founded_category.update(updated_category)
+  end
+
+  def toggle
+    @transaction_type == "expense" ? @transaction_type = "income" : @transaction_type = "expense"
+    #@transaction_type
+  end
+
+  def next_month
+    @day = @day >> 1
+  end
+
+  def prev_month
+    @day = @day >> -1
+  end
+  
+  def expenses_table
     table = Terminal::Table.new
-    table.title = "Expenses\n #{Date.today.strftime("%B %Y")}"
+    table.title = "Expenses\n #{@day.strftime("%B %Y")}"
     table.headings = ['ID', 'Category', 'Total']
-    table.rows = @categories.map do |note|
-      pp note
-      [ note[:id], note[:name], note[nil]]
+    @categories_month = []
+    @categories.each do |note|
+      m = 0
+      if note[:transaction_type] == @transaction_type
+        note[:transactions].each do |transaction|
+          if transaction[:date].split("-")[1] == @day.strftime("%m") && m == 0
+          @categories_month.push(note)
+          m = 1
+          end
+       end
+      end
+    end
+    table.rows = @categories_month.map do |note|
+      [ note[:id], note[:name], note[:transactions].map { |el| el[:amount] }.sum] 
     end
     table.style = { :border => :unicode }
     table
   end
-
-  # def notes_to_show
-  #   if @trash
-  #     sorted_notes.select { |note| note[:deleted_at] } # Seleciona solo las notas que tiene un `deleted_at` con un valor
-  #   else
-  #     # Dosc to reject => https://apidock.com/ruby/v2_5_5/Array/reject
-  #     sorted_notes.reject { |note| note[:deleted_at] } # reject => inverso a `select`
-  #   end
-  # end
-
-  # def sorted_notes
-  #   @notes.sort_by { |note| note[:pinned] ? -1 : 1 }
-  #   # Docs to sort_by => https://apidock.com/ruby/Array/sort 
-  #   # Ejemplo para el irb 👇
-  #   # [true, false, true, true, false, true].sort_by{ |a|  a ? -1 : 1 }
-  # end
-
 
 end
 

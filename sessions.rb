@@ -27,5 +27,12 @@ require 'json'
       raise HTTParty::ResponseError.new(response) unless response.success?
       JSON.parse(response.body, symbolize_names: true)
     end
+
+    def self.logout(token)
+      options = {
+        headers: { "Authorization": "Token token=#{token}" }
+      }
   
+      delete('/logout', options)
+    end
   end
