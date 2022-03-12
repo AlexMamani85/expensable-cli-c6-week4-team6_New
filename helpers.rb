@@ -101,26 +101,6 @@ module Helpers
     { email: email, password: password, first_name: first_name, last_name: last_name, phone: phone }
   end
   
-  def update_category_form(id)
-    name = ""
-    transaction_type = ""
-    while name.empty?
-      name = get_string("Name")
-      puts "Cannot be blank" if name.empty?
-    end 
-    
-    until transaction_type == "expense" || transaction_type == "income"
-      transaction_type = get_string("transaction_type")
-      puts "Only income or expense" unless transaction_type == "expense" || transaction_type == "income"
-    end
-       
-    # while transaction_type.empty?
-    #   transaction_type = get_string("transaction_type")
-    #   puts "Cannot be blank" if transaction_type.empty?
-    # end
-    { id: id, name: name, transaction_type: transaction_type}
-
-  end
 
   def category_form
     name = ""

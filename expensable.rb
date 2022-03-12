@@ -3,6 +3,7 @@ require_relative "helpers"
 require_relative 'sessions'
 require 'date'
 require_relative 'categories'
+require_relative 'transactions'
 
 class ExpensableApp
   include Helpers
@@ -75,7 +76,7 @@ class ExpensableApp
         when "create" 
           create_category
         when "show"
-          puts "show something"
+          show_category
         when "update"
           update_category(id.to_i)
         when "delete" # Llamamos a nuestro menu trash
@@ -122,11 +123,12 @@ class ExpensableApp
     @categories << new_category
   end
 
-  def expenses_table
+  def expenses_table)
     table = Terminal::Table.new
     table.title = "Expenses\n #{Date.today.strftime("%B %Y")}"
     table.headings = ['ID', 'Category', 'Total']
     table.rows = @categories.map do |note|
+      pp note
       [ note[:id], note[:name], note[nil]]
     end
     table.style = { :border => :unicode }
