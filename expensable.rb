@@ -8,6 +8,7 @@ class ExpensableApp
   include Helpers
 
   def intialize
+   
     @user = nil
     @categories_month = []
     @trash = false
@@ -15,7 +16,7 @@ class ExpensableApp
   end
 
   def start
-    @day = Date.new(2021,11,1)
+    @day = Date.new(2021,12,1)
     @transaction_type = "expense"
     welcome_message
     action = ""
@@ -49,6 +50,7 @@ class ExpensableApp
   end
   
   def login
+
     credentials = login_form
     @user = Sessions.login(credentials)
     puts "Welcome back #{@user[:first_name].downcase.capitalize} #{@user[:last_name].downcase.capitalize}"
@@ -73,7 +75,7 @@ class ExpensableApp
         when "create" 
           create_category
         when "show"
-          puts "show something"
+          show_category(id.to_i)
         when "update"
           update_category(id.to_i)
         when "delete" # Llamamos a nuestro menu trash
@@ -81,7 +83,7 @@ class ExpensableApp
         when "add-to"
           puts "add something to an id"
         when "toggle"
-          toggle
+          toggle_category(id.to_i)
         when "next"
           next_month
         when "prev"
@@ -97,14 +99,48 @@ class ExpensableApp
   end
 
   def create_category
-    data = category_form
+    data = category_form #(name, transaction_type)
     new_category = Categories.create_categories(@user[:token], data)
-    @categories_month << new_category
+    @categories << new_category
+
   end
-  
+
   def delete_category_id(id)
-    Categories.delete_category(@user[:token], id)
+    deleted_note = Categories.destroy(@user[:token], id)
+    founded_note = @categories.find{ |note| note[:id] == id}
+    if deleted_note
+      founded_note.update(deleted_note)
+    else
+      @categories.delete(founded_note)
+    end
   end
+
+  def show_category(id)
+    rows=[]
+    titulo=""
+    @categories.map do |el| 
+      el[:transactions].map do |it| 
+      # pp el [:transactions][:id]
+      # pp a[:date]
+      # pp a[:amount]
+      # pp a[:notes]
+        rows << [it[:id], it[:date], it[:amount], it[:notes] ] if el[:id]==id 
+        titulo= el[:name] if el[:id]==id   
+      end
+
+    end
+    table = Terminal::Table.new
+    table.title = "#{titulo} \n#{@day}"
+    table.headings = ['ID', 'Date', 'Amount', 'Notes']
+    table.rows = rows
+    table.style = { :border => :unicode }
+    puts table
+
+    
+
+  end
+
+
 
   def update_category(id)
     data = category_form
@@ -115,9 +151,12 @@ class ExpensableApp
       founded_category.update(updated_category)
   end
 
-  def toggle
-    @transaction_type == "expense" ? @transaction_type = "income" : @transaction_type = "expense"
-    #@transaction_type
+  def toggle_category(id)
+    found_note = @notes.find{ |note| note[:id] == id}
+    note_data = { pinned: !found_note[:pinned] } # Cambiamos el pinned actual por su negacion para efectuar toogle 
+
+    updated_note = Categories.update(@user[:token], id, note_data)
+    found_note.update(updated_note)
   end
 
   def next_month
@@ -133,19 +172,19 @@ class ExpensableApp
     table.title = "Expenses\n #{@day.strftime("%B %Y")}"
     table.headings = ['ID', 'Category', 'Total']
     @categories_month = []
-    @categories.each do |note|
-      m = 0
-      if note[:transaction_type] == @transaction_type
-        note[:transactions].each do |transaction|
-          if transaction[:date].split("-")[1] == @day.strftime("%m") && m == 0
-          @categories_month.push(note)
-          m = 1
-          end
-       end
+    @categories.each do |cat|
+      # m = 0
+      suma=0
+      if cat[:transaction_type] == @transaction_type
+        cat[:transactions].each do |transaction|
+          suma+=transaction[:amount]
+        end
+        @categories_month.push(id: cat[:id],name: cat[:name],suma: suma)
       end
     end
-    table.rows = @categories_month.map do |note|
-      [ note[:id], note[:name], note[:transactions].map { |el| el[:amount] }.sum] 
+
+    table.rows = @categories_month.map do |cat|
+      [ cat[:id], cat[:name], cat[:suma]] 
     end
     table.style = { :border => :unicode }
     table

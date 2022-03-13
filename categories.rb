@@ -28,12 +28,15 @@ class Categories
     JSON.parse(response.body, symbolize_names: true)
   end
 
-  def self.delete_category(token, id)
-    options = {
-      headers: { "Authorization": "Token token=#{token}" }
-    }
 
-    delete("/categories/#{id}", options)
+  
+  def self.destroy(token, id)
+    options = {
+      headers: { Authorization: "Token token=#{token}" }
+    }
+    response = delete("/categories/#{id}", options)
+    raise HTTParty::ResponseError response unless response.success?
+    JSON.parse(response.body, symbolize_names: true) unless response.body.nil?
   end
 
   def self.update(token, id, data)
