@@ -4,52 +4,65 @@ require "json"
 class Categories
   include HTTParty
 
-  base_uri('https://expensable-api.herokuapp.com')
+  base_uri("https://expensable-api.herokuapp.com")
 
   def self.categories(token)
     options = {
-      headers: { "Authorization": "Token token=#{token}" }
+      headers: { Authorization: "Token token=#{token}" }
     }
 
-    response = get('/categories', options)
-    raise HTTParty::ResponseError.new(response) unless response.success?
+    response = get("/categories", options)
+    raise HTTParty::ResponseError, response unless response.success?
+
     JSON.parse(response.body, symbolize_names: true)
   end
 
   def self.create_categories(token, data)
     options = {
       headers: { "Content-Type": "application/json",
-        "Authorization": "Token token=#{token}"},
-       body: data.to_json
+                 Authorization: "Token token=#{token}" },
+      body: data.to_json
     }
 
-    response = post('/categories', options)
+    response = post("/categories", options)
     # raise HTTParty::ResponseError.new(response) unless response.success?
     JSON.parse(response.body, symbolize_names: true)
   end
 
-
-  
-  def self.destroy(token, id)
+  def self.delete_category(token, id)
     options = {
       headers: { Authorization: "Token token=#{token}" }
     }
-    response = delete("/categories/#{id}", options)
-    raise HTTParty::ResponseError response unless response.success?
-    JSON.parse(response.body, symbolize_names: true) unless response.body.nil?
+
+    delete("/categories/#{id}", options)
   end
 
   def self.update(token, id, data)
     options = {
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        "Authorization": "Token token=#{token}"
+        Authorization: "Token token=#{token}"
       },
       body: data.to_json
     }
 
     response = patch("/categories/#{id}", options)
-    raise HTTParty::ResponseError.new(response) unless response.success?
+    raise HTTParty::ResponseError, response unless response.success?
+
+    JSON.parse(response.body, symbolize_names: true)
+  end
+
+  def self.add_transaction(token, data, id)
+    options = {
+      headers: { "Content-Type": "application/json",
+                 Authorization: "Token token=#{token}" },
+      body: data.to_json
+    }
+
+    response = post("/categories/#{id}/transactions", options)
+    raise HTTParty::ResponseError, response unless response.success?
+
     JSON.parse(response.body, symbolize_names: true)
   end
 end
+

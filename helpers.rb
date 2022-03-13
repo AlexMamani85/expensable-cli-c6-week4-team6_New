@@ -1,14 +1,14 @@
 module Helpers
   def welcome_message
     puts "#" * 36
-    puts "#      Welcome to Expensable      #"
+    puts "#       " + "Welcome to Expensable" + "      #"
     puts "#" * 36
   end
 
   def get_with_options(options, options_shows: [], default: nil)
     action = ""
     id = nil
-    
+
     loop do
       puts options_shows.empty? ? options.join(" | ") : options_shows.join(" | ")
       print "> "
@@ -19,21 +19,27 @@ module Helpers
       puts "Invalid Options!"
     end
 
-    action.empty? ? [default, id] : [action, id]    
+    action.empty? ? [default, id] : [action, id]
   end
 
   def login_menu
-    get_with_options(["login", "create_user", "exit" ])
+    get_with_options(["login", "create_user", "exit"])
   end
 
   def categories_menu
-    get_with_options(["create", "show", "update", "delete", "add-to", "toggle", "next", "prev", "logout"], 
-      options_shows: ["create", "show ID", "update ID", "delete ID", "add-to ID", "toggle", "next", "prev", "logout"])
+    get_with_options(["create", "show", "update", "delete", "add-to", "toggle", "next", "prev", "logout"],
+                     options_shows: ["create", "show ID", "update ID", "delete ID", "add-to ID", "toggle", "next",
+                                     "prev", "logout"])
+  end
+
+  def transaction_menu
+    get_with_options(["add", "update", "delete", "next", "prev", "back"],
+                     options_shows: ["add", "update ID", "delete ID", "next", "prev", "back"])
   end
 
   def exit_message
     puts "#" * 36
-    puts "#    Thanks for using Expensable   #"
+    puts "#    " + "Gracias por usar Expensable" + "   #"
     puts "#" * 36
   end
 
@@ -48,7 +54,7 @@ module Helpers
     while email.empty?
       email = get_string("Email")
       puts "Cannot be blank" if email.empty?
-    end 
+    end
     while password.empty?
       password = get_string("Password")
       puts "Cannot be blank" if password.empty?
@@ -57,25 +63,24 @@ module Helpers
   end
 
   def user_data
-  
     email = get_string("Email")
     until email =~ /\w+@\w+.[a-z]{2,3}/
       puts "Invalid format"
-      email = get_string("Email")        
-    end 
+      email = get_string("Email")
+    end
 
     password = get_string("Password")
     until password =~ /\w{6}/
       puts "Minimum 6 characters"
       password = get_string("Password")
-    end 
+    end
 
     first_name = get_string("First name")
     last_name = get_string("Last name")
-    
+
     phone = get_string("Phone")
-    until phone =~ /\d{9}/ || phone =~ /[+]?[5]?[1]?\s\d{9}/
-      puts "Required format: +51 123456789 o 123456789"
+    until phone =~ /\d{9}/ || phone =~ /[+]?5?1?\s\d{9}/
+      puts "Required format: +51 123456789 o 123456789".light_red
       phone = get_string("Phone")
     end
 
@@ -88,15 +93,38 @@ module Helpers
     while name.empty?
       name = get_string("Name")
       puts "Cannot be blank" if name.empty?
-    end 
-    
-    until transaction_type == "expense" || transaction_type == "income"
+    end
+
+    until ["expense", "income"].include?(transaction_type)
       transaction_type = get_string("transaction_type")
-      puts "Only income or expense" unless transaction_type == "expense" || transaction_type == "income"
+      puts "Only income or expense" unless ["expense", "income"].include?(transaction_type)
     end
     { name: name, transaction_type: transaction_type }
-    
   end
 
+  def transaction_form
+    amount = ""
+    date = ""
+    while amount.empty?
+      amount = get_string("Amount")
+      puts "Cannot be blank" if amount.empty?
+    end
 
+    until valid_date?(date)
+      date = get_string("Date")
+      puts "Required format: YYYY-MM-DD" unless valid_date?(date)
+    end
+    notes = get_string("Notes")
+
+    { amount: amount.to_i, date: date, notes: notes }
+  end
+
+  def valid_date?(date)
+    date_format = "%Y-%m-%d"
+    DateTime.strptime(date, date_format)
+    true
+  rescue ArgumentError
+    false
+  end
 end
+
